@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SB College Lost & Found Portal</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            200: '#bae2fd',
+                            300: '#7ccbfd',
+                            400: '#38b0fa',
+                            500: '#0ea0eb',
+                            600: '#0280c7',
+                            700: '#0366a1',
+                            800: '#075685',
+                            900: '#0c486e',
+                        },
+                        secondary: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Outfit', 'Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- React & Babel CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- FontAwesome for fallback icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Outfit', 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f0f7ff 0%, #f8fafc 100%);
+            min-height: 100vh;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 20px -8px rgba(14, 160, 235, 0.15);
+            border-color: rgba(14, 160, 235, 0.3);
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="text-secondary-800">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Self-correcting cache migration for college branding
+        (function() {
+            const savedPosts = localStorage.getItem('lf_posts');
+            if (savedPosts && savedPosts.includes('Central Park Near Zoo')) {
+                localStorage.clear();
+            }
+        })();
+
+        const { useState, useEffect, useMemo } = React;
+
+        // Categories
+        const CATEGORIES = [
+            { id: 'electronics', name: 'Electronics', icon: 'fa-laptop' },
+            { id: 'keys', name: 'Keys', icon: 'fa-key' },
+            { id: 'wallet', name: 'Wallet & Cards', icon: 'fa-wallet' },
+            { id: 'documents', name: 'Documents & Books', icon: 'fa-file-invoice' },
+            { id: 'clothing', name: 'Clothing & Bags', icon: 'fa-shirt' },
+            { id: 'pets', name: 'Pets & Animals', icon: 'fa-paw' },
+            { id: 'others', name: 'Others', icon: 'fa-icons' }
+        ];
+
+        // Locations
+        const LOCATIONS = [
+            'Central Library',
+            'Newmans Block',
+            'Padiyara Hall',
+            'Kaavukatt Hall',
+            'Indoor Stadium',
+            'Tower Block',
+            'Main Ground',
+            'College Cafeteria',
+            'Science Block',
+            'Arts Block',
+            'College Chapel',
+            'Auditorium',
+            'Administrative Block'
+        ];
+
+        // Mock Users
+        const MOCK_USERS = [
+            { id: 'u1', username: 'Sarah Jenkins', email: 'sarah@example.com', phone: '+91 98765 01928', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80' },
+            { id: 'u2', username: 'David Chen', email: 'david@example.com', phone: '+91 98765 02457', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80' },
+            { id: 'u3', username: 'Alex Rodriguez', email: 'alex@example.com', phone: '+91 98765 03891', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80' }
+        ];
+
+        // Initial Mock Posts
+        const INITIAL_POSTS = [
+            {
+                id: 'p1',
+                title: 'Lost iPhone 15 Pro Max (Natural Titanium)',
+                description: 'Lost my iPhone 15 Pro Max with a clear Spigen case. The screen lock features a photo of a golden retriever. Last seen near Newman\'s Block entrance corridor. It contains critical study accounts and notes. Please contact me if found.',
+                category: 'electronics',
+                date: '2026-07-10',
+                location: 'Newmans Block',
+                status: 'lost',
+                imageUrl: 'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=600&auto=format&fit=crop&q=80',
+                reporterId: 'u1',
+                resolved: false,
+                resolvedWith: null,
+                createdAt: '2026-07-10T14:30:00Z'
+            },
+            {
+                id: 'p2',
+                title: 'Found Keys with Red Nike Carabiner',
+                description: 'Found a bunch of keys (about 5 keys and a black gym card) held together by a red Nike carabiner strap. Found sitting on the bench at the College Cafeteria. Turned them in to the Cafeteria front counter, but posting here to find the owner.',
+                category: 'keys',
+                date: '2026-07-11',
+                location: 'College Cafeteria',
+                status: 'found',
+                imageUrl: 'https://images.unsplash.com/photo-1582139329536-e7284fece509?w=600&auto=format&fit=crop&q=80',
+                reporterId: 'u2',
+                resolved: false,
+                resolvedWith: null,
+                createdAt: '2026-07-11T09:15:00Z'
+            },
+            {
+                id: 'p3',
+                title: 'Lost Brown Leather Wallet',
+                description: 'Bellroy slim sleeve leather wallet, brown color. Contains my SB College ID card, driver\'s license, and some cash. Lost somewhere between Newman\'s Block and the Central Library. The ID card has my name Sarah Jenkins on it.',
+                category: 'wallet',
+                date: '2026-07-08',
+                location: 'Central Library',
+                status: 'lost',
+                imageUrl: 'https://images.unsplash.com/photo-1627124765111-bcf69dca4e90?w=600&auto=format&fit=crop&q=80',
+                reporterId: 'u1',
+                resolved: false,
+                resolvedWith: null,
+                createdAt: '2026-07-08T18:45:00Z'
+            },
+            {
+                id: 'p4',
+                title: 'Found Black Leather Wallet',
+                description: 'Found a mens leather wallet, black color. Contains some cash and cards. No ID cards. Found near the Tower Block coffee stall. If this is yours, please tell me the card bank name to verify.',
+                category: 'wallet',
+                date: '2026-07-09',
+                location: 'Tower Block',
+                status: 'found',
+                imageUrl: 'https://images.unsplash.com/photo-1627124765111-bcf69dca4e90?w=600&auto=format&fit=crop&q=80',
+                reporterId: 'u3',
+                resolved: false,
+                resolvedWith: null,
+                createdAt: '2026-07-09T10:00:00Z'
+            },
+            {
+                id: 'p5',
+                title: 'Lost Lab Record File (Chemistry)',
+                description: 'Lost my black hard-bound Chemistry Lab Record notebook. Has "St. Berchmans College" printed on the front and my name on the first page. Lost near the Science Block or the Chapel. Need it urgently for exams.',
+                category: 'documents',
+                date: '2026-07-09',
+                location: 'Science Block',
+                status: 'lost',
+                imageUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&auto=format&fit=crop&q=80',
+                reporterId: 'u3',
+                resolved: false,
+                resolvedWith: null,
+                createdAt: '2026-07-09T21:00:00Z'
+            }
+        ];
+
+        // Initial Mock Messages
+        const INITIAL_MESSAGES = [
+            { id: 'm1', senderId: 'u2', receiverId: 'u1', postId: 'p1', text: 'Hello Sarah, I think I saw someone carrying a titanium iPhone matching your description near the College Cafeteria around 3 PM on Friday. Maybe check with the Newman\'s Block staff office?', createdAt: '2026-07-10T16:20:00Z' },
+            { id: 'm2', senderId: 'u1', receiverId: 'u2', postId: 'p1', text: 'Oh thank you David! I will call them right away. Did you notice if they had a phone case on it?', createdAt: '2026-07-10T16:22:00Z' },
+            { id: 'm3', senderId: 'u3', receiverId: 'u1', postId: 'p3', text: 'Hi Sarah, I found a brown Bellroy wallet at Newman\'s Block cafeteria. It has an ID card with your name Sarah Jenkins. I am at the Newman\'s Block office right now.', createdAt: '2026-07-09T11:12:00Z' },
+            { id: 'm4', senderId: 'u1', receiverId: 'u3', postId: 'p3', text: 'Oh my goodness, Alex! Yes, that is my wallet. I can come to the office right away to collect it. Thank you so much!', createdAt: '2026-07-09T11:15:00Z' }
+        ];
+
+        function MainApp() {
+            // State initialization from localStorage
+            const [users, setUsers] = useState(() => {
+                const saved = localStorage.getItem('lf_users');
+                return saved ? JSON.parse(saved) : MOCK_USERS;
+            });
+            const [currentUser, setCurrentUser] = useState(() => {
+                const saved = localStorage.getItem('lf_current_user');
+                return saved ? JSON.parse(saved) : null; // Default to logged out
+            });
+            const [posts, setPosts] = useState(() => {
+                const saved = localStorage.getItem('lf_posts');
+                return saved ? JSON.parse(saved) : INITIAL_POSTS;
+            });
+            const [messages, setMessages] = useState(() => {
+                const saved = localStorage.getItem('lf_messages');
+                return saved ? JSON.parse(saved) : INITIAL_MESSAGES;
+            });
+            const [handovers, setHandovers] = useState(() => {
+                const saved = localStorage.getItem('lf_handovers');
+                return saved ? JSON.parse(saved) : [];
+            });
+
+            // Navigation
+            const [activeTab, setActiveTab] = useState(() => localStorage.getItem('lf_current_user') ? 'dashboard' : 'login'); // 'dashboard', 'profile', 'messages', 'post-detail', 'create-post'
+            const [selectedPostId, setSelectedPostId] = useState(null);
+
+            // Chat state
+            const [activeChatUser, setActiveChatUser] = useState(null);
+            const [activeChatPostId, setActiveChatPostId] = useState(null);
+            const [newMessageText, setNewMessageText] = useState('');
+
+            // Filter states
+            const [searchQuery, setSearchQuery] = useState('');
+            const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'lost', 'found'
+            const [categoryFilter, setCategoryFilter] = useState('all');
+            const [locationFilter, setLocationFilter] = useState('all');
+
+            // Handover Receipt modal state
+            const [showHandoverModal, setShowHandoverModal] = useState(false);
+            const [handoverPost, setHandoverPost] = useState(null);
+            const [handoverNotes, setHandoverNotes] = useState('');
+            const [handoverPartnerId, setHandoverPartnerId] = useState('');
+            const [activeReceipt, setActiveReceipt] = useState(null);
+
+            // Post creation form state
+            const [postForm, setPostForm] = useState({
+                title: '',
+                description: '',
+                category: 'electronics',
+                date: new Date().toISOString().split('T')[0],
+                location: '',
+                status: 'lost',
+                imageUrl: ''
+            });
+
+            // Sync states to localStorage
+            useEffect(() => {
+                localStorage.setItem('lf_users', JSON.stringify(users));
+            }, [users]);
+            useEffect(() => {
+                localStorage.setItem('lf_current_user', JSON.stringify(currentUser));
+            }, [currentUser]);
+            useEffect(() => {
+                localStorage.setItem('lf_posts', JSON.stringify(posts));
+            }, [posts]);
+            useEffect(() => {
+                localStorage.setItem('lf_messages', JSON.stringify(messages));
+            }, [messages]);
+            useEffect(() => {
+                localStorage.setItem('lf_handovers', JSON.stringify(handovers));
+            }, [handovers]);
+
+            // Authentication actions
+            const handleLogout = () => {
+                setCurrentUser(null);
+                setActiveTab('login');
+                localStorage.removeItem('lf_current_user');
+            };
+
+            const handleLogin = (identifier, password) => {
+                const user = users.find(u => 
+                    u.email.toLowerCase() === identifier.toLowerCase() || 
+                    u.username.toLowerCase() === identifier.toLowerCase()
+                );
+                
+                if (user) {
+                    // For mock accounts that don't have password field yet, let them log in with any password
+                    if (!user.password || user.password === password) {
+                        setCurrentUser(user);
+                        setActiveTab('dashboard');
+                    } else {
+                        alert('Incorrect password. Please try again.');
+                    }
+                } else {
+                    alert('No account found with this email/username. Please register an account first.');
+                }
+            };
+
+            const handleSignup = (username, email, phone, password) => {
+                // Validate +91 Phone Format (e.g. +91 9876543210 or +919876543210)
+                const digits = phone.replace(/\D/g, '');
+                if (!phone.startsWith('+91') || digits.length !== 12) {
+                    alert('Please enter a valid phone number in the +91 XXXXXXXXXX format (e.g., +91 9876543210)');
+                    return;
+                }
+
+                // Check if user already exists
+                const userExists = users.find(u => 
+                    u.email.toLowerCase() === email.toLowerCase() || 
+                    u.username.toLowerCase() === username.toLowerCase()
+                );
+                if (userExists) {
+                    alert('An account with this email or username already exists.');
+                    return;
+                }
+
+                const newUser = {
+                    id: 'u_' + Date.now(),
+                    username,
+                    email,
+                    phone,
+                    password,
+                    avatar: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80`
+                };
+
+                setUsers(prev => [...prev, newUser]);
+                setCurrentUser(newUser);
+                setActiveTab('dashboard');
+            };
+
+            // Post creation
+            const handleCreatePost = (e) => {
+                e.preventDefault();
+                if (!currentUser) {
+                    alert('Please log in first!');
+                    return;
+                }
+                const newPost = {
+                    ...postForm,
+                    id: 'p_' + Date.now(),
+                    reporterId: currentUser.id,
+                    resolved: false,
+                    resolvedWith: null,
+                    createdAt: new Date().toISOString(),
+                    // Default fallback image if empty
+                    imageUrl: postForm.imageUrl || 'https://images.unsplash.com/photo-1501555088652-021faa106b9b?w=600&auto=format&fit=crop&q=80'
+                };
+                setPosts(prev => [newPost, ...prev]);
+                
+                // Clear form
+                setPostForm({
+                    title: '',
+                    description: '',
+                    category: 'electronics',
+                    date: new Date().toISOString().split('T')[0],
+                    location: '',
+                    status: 'lost',
+                    imageUrl: ''
+                });
+
+                // Redirect to detail page
+                setSelectedPostId(newPost.id);
+                setActiveTab('post-detail');
+            };
+
+            // Messaging actions
+            const handleSendMessage = (e) => {
+                e.preventDefault();
+                if (!newMessageText.trim() || !currentUser || !activeChatUser) return;
+
+                const newMsg = {
+                    id: 'm_' + Date.now(),
+                    senderId: currentUser.id,
+                    receiverId: activeChatUser.id,
+                    postId: activeChatPostId,
+                    text: newMessageText,
+                    createdAt: new Date().toISOString()
+                };
+
+                setMessages(prev => [...prev, newMsg]);
+                setNewMessageText('');
+            };
+
+            // Handover resolution
+            const startHandover = (post) => {
+                setHandoverPost(post);
+                // Find potential handover partners (who are the reporters of conflicting matches or chat participants)
+                // Filter users to exclude current user
+                const otherUsers = users.filter(u => u.id !== currentUser.id);
+                setHandoverPartnerId(otherUsers[0]?.id || '');
+                setHandoverNotes('');
+                setShowHandoverModal(true);
+            };
+
+            const completeHandover = (e) => {
+                e.preventDefault();
+                if (!handoverPost || !handoverPartnerId) return;
+
+                const isOwner = handoverPost.status === 'lost';
+                const ownerId = isOwner ? handoverPost.reporterId : handoverPartnerId;
+                const finderId = isOwner ? handoverPartnerId : handoverPost.reporterId;
+
+                const handoverId = 'h_' + Date.now();
+                const newReceipt = {
+                    id: handoverId,
+                    postTitle: handoverPost.title,
+                    postId: handoverPost.id,
+                    ownerId,
+                    finderId,
+                    receivedDate: new Date().toLocaleDateString(),
+                    receiptNo: 'REC-' + Math.floor(100000 + Math.random() * 900000),
+                    notes: handoverNotes,
+                    verificationCode: Math.floor(1000 + Math.random() * 9000).toString()
+                };
+
+                // Add Handover
+                setHandovers(prev => [newReceipt, ...prev]);
+
+                // Update Post
+                setPosts(prev => prev.map(p => {
+                    if (p.id === handoverPost.id) {
+                        return { ...p, resolved: true, resolvedWith: handoverId };
+                    }
+                    return p;
+                }));
+
+                setShowHandoverModal(false);
+                setActiveReceipt(newReceipt);
+            };
+
+            // Dynamic Matching Logic
+            // Evaluates matches based on Category, Location, status, and similarity
+            const getMatchingPosts = (post) => {
+                if (!post) return [];
+                return posts.filter(p => {
+                    if (p.id === post.id) return false;
+                    if (p.resolved) return false;
+                    // Opposite status (lost <-> found)
+                    if (p.status === post.status) return false;
+                    
+                    // Direct category match
+                    const categoryMatch = p.category === post.category;
+                    // Simple word overlap for title/description
+                    const postWords = new Set(post.title.toLowerCase().split(/\s+/));
+                    const pWords = p.title.toLowerCase().split(/\s+/);
+                    const titleOverlap = pWords.some(w => w.length > 3 && postWords.has(w));
+
+                    // Location match
+                    const locationMatch = p.location.toLowerCase() === post.location.toLowerCase();
+
+                    return (categoryMatch && (titleOverlap || locationMatch));
+                });
+            };
+
+            // Filtering posts
+            const filteredPosts = useMemo(() => {
+                return posts.filter(post => {
+                    const matchesSearch = 
+                        post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        post.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        post.location.toLowerCase().includes(searchQuery.toLowerCase());
+                    
+                    const matchesStatus = statusFilter === 'all' || post.status === statusFilter;
+                    const matchesCategory = categoryFilter === 'all' || post.category === categoryFilter;
+                    const matchesLocation = locationFilter === 'all' || post.location === locationFilter;
+
+                    return matchesSearch && matchesStatus && matchesCategory && matchesLocation;
+                });
+            }, [posts, searchQuery, statusFilter, categoryFilter, locationFilter]);
+
+            // Unique locations for select filter
+            const postLocations = useMemo(() => {
+                return Array.from(new Set(posts.map(p => p.location)));
+            }, [posts]);
+
+            // Message threads compilation
+            const chatThreads = useMemo(() => {
+                if (!currentUser) return [];
+                // Group messages by partner user and post
+                const threads = {};
+                messages.forEach(msg => {
+                    if (msg.senderId !== currentUser.id && msg.receiverId !== currentUser.id) return;
+                    
+                    const partnerId = msg.senderId === currentUser.id ? msg.receiverId : msg.senderId;
+                    const key = `${partnerId}_${msg.postId}`;
+                    
+                    if (!threads[key]) {
+                        threads[key] = {
+                            partner: users.find(u => u.id === partnerId),
+                            post: posts.find(p => p.id === msg.postId),
+                            messages: [],
+                            lastMessage: null
+                        };
+                    }
+                    
+                    threads[key].messages.push(msg);
+                });
+
+                // Sort messages within threads & set lastMessage
+                Object.values(threads).forEach(t => {
+                    t.messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                    t.lastMessage = t.messages[t.messages.length - 1];
+                });
+
+                // Return sorted by latest message
+                return Object.values(threads).sort((a, b) => new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt));
+            }, [messages, currentUser, users, posts]);
+
+            // Selected chat messages
+            const activeChatMessages = useMemo(() => {
+                if (!currentUser || !activeChatUser || !activeChatPostId) return [];
+                return messages
+                    .filter(msg => 
+                        ((msg.senderId === currentUser.id && msg.receiverId === activeChatUser.id) ||
+                         (msg.senderId === activeChatUser.id && msg.receiverId === currentUser.id)) &&
+                        msg.postId === activeChatPostId
+                    )
+                    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+            }, [messages, currentUser, activeChatUser, activeChatPostId]);
+
+            // Active Post detailed details
+            const selectedPost = useMemo(() => {
+                return posts.find(p => p.id === selectedPostId);
+            }, [posts, selectedPostId]);
+
+            const selectedPostReporter = useMemo(() => {
+                if (!selectedPost) return null;
+                return users.find(u => u.id === selectedPost.reporterId);
+            }, [selectedPost, users]);
+
+            const selectedPostHandover = useMemo(() => {
+                if (!selectedPost || !selectedPost.resolvedWith) return null;
+                return handovers.find(h => h.id === selectedPost.resolvedWith);
+            }, [selectedPost, handovers]);
+
+            if (!currentUser) {
+                return (
+                    <div className="flex flex-col min-h-screen">
+                        {/* Header for Logged Out User */}
+                        <header className="glass-panel sticky top-0 z-40 shadow-sm border-b">
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                                <div className="flex items-center space-x-3 select-none">
+                                    <div className="bg-primary-600 text-white p-2 rounded-xl flex items-center justify-center shadow-md shadow-primary-200">
+                                        <i className="fa-solid fa-magnifying-glass-location text-lg"></i>
+                                    </div>
+                                    <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-primary-700 to-primary-500 bg-clip-text text-transparent">
+                                        SB College LostFound
+                                    </span>
+                                </div>
+                                <div className="flex items-center space-x-3">
+                                    <button 
+                                        onClick={() => setActiveTab('login')} 
+                                        className={`px-3.5 py-2 rounded-lg font-semibold text-sm transition ${activeTab === 'login' ? 'text-primary-700 bg-primary-50' : 'text-secondary-600 hover:text-secondary-900'}`}
+                                    >
+                                        Login
+                                    </button>
+                                    <button 
+                                        onClick={() => setActiveTab('signup')} 
+                                        className={`px-3.5 py-2 rounded-lg font-semibold text-sm transition ${activeTab === 'signup' ? 'text-primary-700 bg-primary-50' : 'text-secondary-600 hover:text-secondary-900'}`}
+                                    >
+                                        Sign Up
+                                    </button>
+                                </div>
+                            </div>
+                        </header>
+
+                        {/* Centered Login/Signup Forms */}
+                        <main className="flex-grow flex items-center justify-center p-4">
+                            {activeTab === 'signup' ? (
+                                <div className="max-w-md w-full">
+                                    <div className="glass-panel p-6 sm:p-8 rounded-3xl shadow-sm border border-white">
+                                        <h2 className="text-2xl font-extrabold text-secondary-900 text-center mb-1">Create Account</h2>
+                                        <p className="text-secondary-400 text-xs text-center mb-6">Register with your name, phone (+91 format), and details</p>
+                                        
+                                        <form onSubmit={(e) => { 
+                                            e.preventDefault(); 
+                                            handleSignup(
+                                                e.target.username.value, 
+                                                e.target.email.value, 
+                                                e.target.phone.value,
+                                                e.target.password.value
+                                            ); 
+                                        }} className="space-y-4">
+                                            <div>
+                                                <label className="block text-xs font-semibold text-secondary-600 mb-1">Full Name</label>
+                                                <input type="text" name="username" required placeholder="e.g. Sarah Jenkins" className="w-full px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:outline-none" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-semibold text-secondary-600 mb-1">Email Address</label>
+                                                <input type="email" name="email" required placeholder="e.g. sarah@example.com" className="w-full px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:outline-none" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-semibold text-secondary-600 mb-1">Phone Number (+91 format)</label>
+                                                <input type="tel" name="phone" required placeholder="+91 98765 43210" className="w-full px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:outline-none" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-semibold text-secondary-600 mb-1">Password</label>
+                                                <input type="password" name="password" required placeholder="••••••••" className="w-full px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:outline-none" />
+                                            </div>
+                                            <button type="submit" className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl text-sm transition mt-2">Sign Up</button>
+                                        </form>
+                                        <div className="mt-4 text-center text-xs">
+                                            <span className="text-secondary-400">Already have an account? </span>
+                                            <button onClick={() => setActiveTab('login')} className="text-primary-600 font-bold hover:underline">Log In</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="max-w-md w-full">
+                                    <div className="glass-panel p-6 sm:p-8 rounded-3xl shadow-sm border border-white">
+                                        <h2 className="text-2xl font-extrabold text-secondary-900 text-center mb-1">Welcome Back</h2>
+                                        <p className="text-secondary-400 text-xs text-center mb-6">Log in with your username or email and password</p>
+                                        
+                                        <form onSubmit={(e) => { 
+                                            e.preventDefault(); 
+                                            handleLogin(
+                                                e.target.identifier.value,
+                                                e.target.password.value
+                                            ); 
+                                        }} className="space-y-4">
+                                            <div>
+                                                <label className="block text-xs font-semibold text-secondary-600 mb-1">Username or Email Address</label>
+                                                <input type="text" name="identifier" required placeholder="e.g. sarah@example.com or Sarah Jenkins" className="w-full px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:outline-none" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-semibold text-secondary-600 mb-1">Password</label>
+                                                <input type="password" name="password" required placeholder="••••••••" className="w-full px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:outline-none" />
+                                            </div>
+                                            <button type="submit" className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl text-sm transition mt-2">Log In</button>
+                                        </form>
+                                        <div className="mt-4 text-center text-xs">
+                                            <span className="text-secondary-400">Don't have an account? </span>
+                                            <button onClick={() => setActiveTab('signup')} className="text-primary-600 font-bold hover:underline">Register (Sign Up)</button>
+                                        </div>
+                                        <div className="mt-2 text-center text-[10px] text-secondary-400">
+                                            Mock accounts: <b>sarah@example.com</b>, <b>david@example.com</b>, <b>alex@example.com</b> (password: anything)
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </main>
+
+                        {/* Footer */}
+                        <footer className="bg-secondary-900 text-secondary-400 py-8 border-t border-secondary-800 mt-auto">
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs">
+                                <p>© 2026 LostFound Inc. Built with React and Tailwind CSS. All rights reserved.</p>
+                            </div>
+                        </footer>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="flex flex-col min-h-screen">
+                    {/* Header */}
+                    <header className="glass-panel sticky top-0 z-40 shadow-sm border-b">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                            <div className="flex items-center space-x-3 cursor-pointer" onClick={() => { setActiveTab('dashboard'); setSelectedPostId(null); }}>
+                                <div className="bg-primary-600 text-white p-2 rounded-xl flex items-center justify-center shadow-md shadow-primary-200">
+                                    <i className="fa-solid fa-magnifying-glass-location text-lg"></i>
+                                </div>
+                                <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-primary-700 to-primary-500 bg-clip-text text-transparent">
+                                    SB College LostFound
+                                </span>
+                            </div>
+
+                            {currentUser ? (
+                                <nav className="flex items-center space-x-2 sm:space-x-4">
+                                    <button 
+                                        onClick={() => { setActiveTab('dashboard'); setSelectedPostId(null); }}
+                                        className={`px-3 py-2 rounded-lg font-medium text-sm transition ${activeTab === 'dashboard' ? 'text-primary-700 bg-primary-50' : 'text-secondary-600 hover:text-secondary-900'}`}
+                                    >
+                                        Feed
+                                    </button>
+                                    <button 
+                                        onClick={() => { setActiveTab('create-post'); }}
+                                        className={`px-3 py-2 rounded-lg font-medium text-sm transition ${activeTab === 'create-post' ? 'text-primary-700 bg-primary-50' : 'text-secondary-600 hover:text-secondary-900'}`}
+                                    >
+                                        Report Item
+                                    </button>
+                                    <button 
+                                        onClick={() => { 
+                                            setActiveTab('messages'); 
+                                            // Select first thread by default if exists
+                                            if (chatThreads.length > 0) {
+                                                setActiveChatUser(chatThreads[0].partner);
+                                                setActiveChatPostId(chatThreads[0].post.id);
+                                            }
+                                        }}
+                                        className={`px-3 py-2 rounded-lg font-medium text-sm transition relative ${activeTab === 'messages' ? 'text-primary-700 bg-primary-50' : 'text-secondary-600 hover:text-secondary-900'}`}
+                                    >
+                                        Inbox
+                                    </button>
+                                    
+                                    <div className="h-6 w-px bg-secondary-200 mx-1"></div>
+
+                                    <button 
+                                        onClick={() => setActiveTab('profile')} 
+                                        className="flex items-center space-x-2 hover:opacity-80 transition"
+                                    >
+                                        <img src={currentUser.avatar} className="w-8 h-8 rounded-full ring-2 ring-primary-100 object-cover" />
+                                        <span className="hidden sm:inline text-sm font-semibold text-secondary-700">{currentUser.username}</span>
+                                    </button>
+
+                                    <button 
+                                        onClick={handleLogout}
+                                        className="p-2 text-secondary-400 hover:text-red-500 transition rounded-lg hover:bg-red-50"
+                                        title="Sign Out"
+                                    >
+                                        <i className="fa-solid fa-arrow-right-from-bracket"></i>
+                                    </button>
+                                </nav>
+                            ) : (
+                                <div className="flex items-center space-x-3">
+                                    <button 
+                                        onClick={() => setActiveTab('login')} 
+                                        className="px-4 py-2 text-sm font-medium text-primary-700 hover:text-primary-800 transition"
+                                    >
+                                        Login
+                                    </button>
+                                    <button 
+                                        onClick={() => setActiveTab('signup')} 
+                                        className="px-4 py-2 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 shadow-md shadow-primary-100 rounded-xl transition"
+                                    >
+                                        Sign Up
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </header>
+
+                    {/* Main Content Area */}
+                    <main className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                        {activeTab === 'dashboard' && (
+                            <div>
+                                {/* Hero banner */}
+                                <div className="mb-8 rounded-3xl bg-gradient-to-r from-primary-700 via-primary-600 to-sky-500 text-white p-6 sm:p-10 shadow-xl relative overflow-hidden">
+                                    <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                                    <div className="relative z-10 max-w-2xl">
+                                        <h1 className="text-3xl sm:text-4xl font-extrabold mb-3">SB College Lost & Found</h1>
+                                        <p className="text-primary-100 text-sm sm:text-base mb-6">
+                                            Official portal for St. Berchmans College, Chaganasherry. Securely report lost items, match found belongings, and log verified handovers on campus.
+                                        </p>
+                                        <div className="flex flex-wrap gap-3">
+                                            <button 
+                                                onClick={() => { setPostForm(prev => ({ ...prev, status: 'lost' })); setActiveTab('create-post'); }} 
+                                                className="bg-white text-primary-700 font-semibold px-5 py-2.5 rounded-xl hover:bg-primary-50 transition shadow-lg text-sm"
+                                            >
+                                                I Lost Something
+                                            </button>
+                                            <button 
+                                                onClick={() => { setPostForm(prev => ({ ...prev, status: 'found' })); setActiveTab('create-post'); }} 
+                                                className="bg-primary-800 bg-opacity-40 border border-primary-400 border-opacity-45 text-white hover:bg-opacity-65 font-semibold px-5 py-2.5 rounded-xl transition text-sm"
+                                            >
+                                                I Found Something
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Filter Controls */}
+                                <div className="glass-panel rounded-2xl p-4 mb-8 shadow-sm flex flex-col md:flex-row gap-4 justify-between items-center border border-white">
+                                    {/* Search Bar */}
+                                    <div className="relative w-full md:max-w-md">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-secondary-400">
+                                            <i className="fa-solid fa-magnifying-glass"></i>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            placeholder="Search by keywords, tags, location..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="block w-full pl-10 pr-3 py-2.5 border border-secondary-200 rounded-xl bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                                        />
+                                    </div>
+
+                                    {/* Select Options */}
+                                    <div className="flex flex-wrap gap-3 w-full md:w-auto">
+                                        <select
+                                            value={statusFilter}
+                                            onChange={(e) => setStatusFilter(e.target.value)}
+                                            className="px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 transition cursor-pointer"
+                                        >
+                                            <option value="all">All Statuses</option>
+                                            <option value="lost">Lost Reports</option>
+                                            <option value="found">Found Reports</option>
+                                        </select>
+
+                                        <select
+                                            value={categoryFilter}
+                                            onChange={(e) => setCategoryFilter(e.target.value)}
+                                            className="px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 transition cursor-pointer"
+                                        >
+                                            <option value="all">All Categories</option>
+                                            {CATEGORIES.map(c => (
+                                                <option key={c.id} value={c.id}>{c.name}</option>
+                                            ))}
+                                        </select>
+
+                                        <select
+                                            value={locationFilter}
+                                            onChange={(e) => setLocationFilter(e.target.value)}
+                                            className="px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 transition cursor-pointer"
+                                        >
+                                            <option value="all">All Locations</option>
+                                            {LOCATIONS.map((loc, idx) => (
+                                                <option key={`preset-${idx}`} value={loc}>{loc}</option>
+                                            ))}
+                                            {postLocations.filter(loc => loc && !LOCATIONS.includes(loc)).map((loc, idx) => (
+                                                <option key={`custom-${idx}`} value={loc}>{loc}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* Active Posts Feed Grid */}
+                                {filteredPosts.length > 0 ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {filteredPosts.map(post => {
+                                            const reporter = users.find(u => u.id === post.reporterId);
+                                            return (
+                                                <div 
+                                                    key={post.id} 
+                                                    onClick={() => { setSelectedPostId(post.id); setActiveTab('post-detail'); }}
+                                                    className="glass-card rounded-2xl overflow-hidden shadow-sm flex flex-col cursor-pointer"
+                                                >
+                                                    <div className="relative h-48 bg-secondary-100 overflow-hidden">
+                                                        <img 
+                                                            src={post.imageUrl} 
+                                                            alt={post.title} 
+                                                            className="w-full h-full object-cover transition duration-500 hover:scale-105"
+                                                        />
+                                                        
+                                                        {/* Status badges */}
+                                                        <div className="absolute top-3 left-3 flex gap-2">
+                                                            {post.status === 'lost' ? (
+                                                                <span className="bg-red-50 text-white font-bold text-xs uppercase px-2.5 py-1 rounded-full shadow-sm">
+                                                                    LOST
+                                                                </span>
+                                                            ) : (
+                                                                <span className="bg-emerald-500 text-white font-bold text-xs uppercase px-2.5 py-1 rounded-full shadow-sm">
+                                                                    FOUND
+                                                                </span>
+                                                            )}
+                                                            {post.resolved && (
+                                                                <span className="bg-blue-600 text-white font-bold text-xs uppercase px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1">
+                                                                    <i className="fa-solid fa-circle-check"></i> RESOLVED
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        
+                                                        {/* Category Badge */}
+                                                        <div className="absolute bottom-3 right-3 bg-secondary-900 bg-opacity-70 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-lg">
+                                                            <i className={`fa-solid ${CATEGORIES.find(c => c.id === post.category)?.icon || 'fa-icons'} mr-1.5`}></i>
+                                                            {CATEGORIES.find(c => c.id === post.category)?.name}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="p-5 flex-grow flex flex-col justify-between">
+                                                        <div>
+                                                            <h3 className="font-bold text-lg text-secondary-900 mb-2 line-clamp-1 group-hover:text-primary-600">{post.title}</h3>
+                                                            <p className="text-secondary-500 text-sm mb-4 line-clamp-2">{post.description}</p>
+                                                        </div>
+
+                                                        <div className="border-t border-secondary-100 pt-4 flex items-center justify-between text-xs text-secondary-500">
+                                                            <div className="flex items-center space-x-1.5">
+                                                                <i className="fa-solid fa-location-dot text-primary-500"></i>
+                                                                <span className="line-clamp-1">{post.location}</span>
+                                                            </div>
+                                                            <div className="flex items-center space-x-1.5">
+                                                                <i className="fa-regular fa-calendar"></i>
+                                                                <span>{new Date(post.date).toLocaleDateString()}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="glass-panel text-center py-16 px-4 rounded-3xl max-w-xl mx-auto border shadow-sm">
+                                        <div className="w-16 h-16 bg-primary-50 text-primary-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <i className="fa-solid fa-magnifying-glass text-2xl"></i>
+                                        </div>
+                                        <h3 className="font-bold text-lg text-secondary-900 mb-1">No Matching Reports Found</h3>
+                                        <p className="text-secondary-500 text-sm">We couldn't find any listings matching your search or filters. Try adjusting your settings or create a new post.</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === 'post-detail' && selectedPost && (
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                {/* Post details left/middle column */}
+                                <div className="lg:col-span-2 space-y-6">
+                                    <div className="glass-panel rounded-3xl overflow-hidden shadow-sm border border-white">
+                                        {/* Main image */}
+                                        <div className="relative h-80 bg-secondary-100 sm:h-96">
+                                            <img src={selectedPost.imageUrl} alt={selectedPost.title} className="w-full h-full object-cover" />
+                                            <div className="absolute top-4 left-4 flex gap-2">
+                                                {selectedPost.status === 'lost' ? (
+                                                    <span className="bg-red-500 text-white font-bold text-sm uppercase px-3 py-1.5 rounded-full shadow-md">
+                                                        LOST REPORT
+                                                    </span>
+                                                ) : (
+                                                    <span className="bg-emerald-500 text-white font-bold text-sm uppercase px-3 py-1.5 rounded-full shadow-md">
+                                                        FOUND REPORT
+                                                    </span>
+                                                )}
+                                                {selectedPost.resolved && (
+                                                    <span className="bg-blue-600 text-white font-bold text-sm uppercase px-3 py-1.5 rounded-full shadow-md">
+                                                        RESOLVED
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="p-6 sm:p-8">
+                                            <div className="flex items-center space-x-2 text-sm text-primary-600 font-semibold mb-3">
+                                                <i className={`fa-solid ${CATEGORIES.find(c => c.id === selectedPost.category)?.icon || 'fa-icons'}`}></i>
+                                                <span>{CATEGORIES.find(c => c.id === selectedPost.category)?.name}</span>
+                                            </div>
+
+                                            <h2 className="text-2xl sm:text-3xl font-extrabold text-secondary-900 mb-4">{selectedPost.title}</h2>
+                                            
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-secondary-50 bg-opacity-70 rounded-2xl p-4 mb-6">
+                                                <div className="flex items-center space-x-3 text-sm text-secondary-600">
+                                                    <div className="w-9 h-9 bg-white shadow-sm rounded-xl flex items-center justify-center text-primary-500">
+                                                        <i className="fa-solid fa-location-dot"></i>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs text-secondary-400 font-medium">Location</p>
+                                                        <p className="font-semibold text-secondary-800">{selectedPost.location}</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center space-x-3 text-sm text-secondary-600">
+                                                    <div className="w-9 h-9 bg-white shadow-sm rounded-xl flex items-center justify-center text-primary-500">
+                                                        <i className="fa-regular fa-calendar-days"></i>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs text-secondary-400 font-medium">Date {selectedPost.status === 'lost' ? 'Lost' : 'Found'}</p>
+                                                        <p className="font-semibold text-secondary-800">{new Date(selectedPost.date).toLocaleDateString()}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <h3 className="font-bold text-lg text-secondary-900 mb-2">Description</h3>
+                                            <p className="text-secondary-600 leading-relaxed text-sm sm:text-base whitespace-pre-line mb-6">
+                                                {selectedPost.description}
+                                            </p>
+
+                                            {/* Action Bar */}
+                                            {currentUser && (
+                                                <div className="border-t border-secondary-100 pt-6 flex flex-wrap gap-3 items-center justify-between">
+                                                    <div className="flex items-center space-x-3">
+                                                        <img src={selectedPostReporter?.avatar} className="w-10 h-10 rounded-full object-cover ring-2 ring-secondary-100" />
+                                                        <div>
+                                                            <p className="text-xs text-secondary-400 font-medium">Posted by</p>
+                                                            <p className="font-semibold text-sm text-secondary-800">{selectedPostReporter?.username}</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex gap-2">
+                                                        {currentUser.id !== selectedPost.reporterId && !selectedPost.resolved && (
+                                                            <button 
+                                                                onClick={() => {
+                                                                    setActiveChatUser(selectedPostReporter);
+                                                                    setActiveChatPostId(selectedPost.id);
+                                                                    setActiveTab('messages');
+                                                                }}
+                                                                className="px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm rounded-xl shadow-md shadow-primary-100 transition flex items-center gap-2"
+                                                            >
+                                                                <i className="fa-regular fa-comments"></i> Send Message
+                                                            </button>
+                                                        )}
+
+                                                        {currentUser.id === selectedPost.reporterId && !selectedPost.resolved && (
+                                                            <button 
+                                                                onClick={() => startHandover(selectedPost)}
+                                                                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-xl shadow-md shadow-emerald-100 transition flex items-center gap-2"
+                                                            >
+                                                                <i className="fa-solid fa-handshake"></i> Mark Resolved / Claims
+                                                            </button>
+                                                        )}
+
+                                                        {selectedPost.resolved && selectedPostHandover && (
+                                                            <button 
+                                                                onClick={() => setActiveReceipt(selectedPostHandover)}
+                                                                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl shadow-md shadow-blue-100 transition flex items-center gap-2"
+                                                            >
+                                                                <i className="fa-solid fa-file-invoice"></i> View Handover Receipt
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Intelligent Matches right sidebar */}
+                                <div className="space-y-6">
+                                    <div className="glass-panel p-6 rounded-3xl shadow-sm border border-white">
+                                        <div className="flex items-center space-x-2 text-primary-700 font-bold mb-4">
+                                            <i className="fa-solid fa-wand-magic-sparkles"></i>
+                                            <h3 className="text-lg">AI Match Suggestions</h3>
+                                        </div>
+
+                                        <p className="text-secondary-500 text-xs mb-4">
+                                            We automatically cross-reference post details (category, title keyphrases, and location) to locate matching items.
+                                        </p>
+
+                                        {getMatchingPosts(selectedPost).length > 0 ? (
+                                            <div className="space-y-4">
+                                                {getMatchingPosts(selectedPost).map(match => (
+                                                    <div 
+                                                        key={match.id}
+                                                        onClick={() => setSelectedPostId(match.id)}
+                                                        className="p-3 bg-white hover:bg-primary-50 rounded-2xl border border-secondary-100 shadow-sm cursor-pointer transition flex items-center gap-3"
+                                                    >
+                                                        <img src={match.imageUrl} className="w-12 h-12 object-cover rounded-xl" />
+                                                        <div className="flex-grow min-w-0">
+                                                            <p className={`text-[10px] font-extrabold tracking-wider uppercase ${match.status === 'lost' ? 'text-red-500' : 'text-emerald-500'}`}>
+                                                                {match.status}
+                                                            </p>
+                                                            <h4 className="font-bold text-xs text-secondary-900 truncate">{match.title}</h4>
+                                                            <p className="text-[10px] text-secondary-400 truncate">{match.location}</p>
+                                                        </div>
+                                                        <i className="fa-solid fa-chevron-right text-secondary-300 text-xs"></i>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-8 bg-secondary-50 rounded-2xl border border-dashed border-secondary-200">
+                                                <i className="fa-solid fa-radar text-secondary-300 text-xl mb-2 animate-pulse"></i>
+                                                <p className="text-secondary-500 text-xs font-medium">Scanning for matches...</p>
+                                                <p className="text-[10px] text-secondary-400 mt-1">No direct matching listings found yet.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'create-post' && (
+                            <div className="max-w-2xl mx-auto">
+                                <div className="glass-panel p-6 sm:p-8 rounded-3xl shadow-sm border border-white">
+                                    <h2 className="text-2xl font-extrabold text-secondary-900 mb-6 text-center">Report Lost or Found Belonging</h2>
+                                    
+                                    <form onSubmit={handleCreatePost} className="space-y-5">
+                                        {/* Status Toggle */}
+                                        <div>
+                                            <label className="block text-sm font-semibold text-secondary-600 mb-2">Report Type</label>
+                                            <div className="grid grid-cols-2 gap-2 bg-secondary-100 p-1.5 rounded-2xl">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setPostForm(prev => ({ ...prev, status: 'lost' }))}
+                                                    className={`py-2 text-sm font-semibold rounded-xl transition ${postForm.status === 'lost' ? 'bg-red-500 text-white shadow-sm' : 'text-secondary-600 hover:text-secondary-800'}`}
+                                                >
+                                                    <i className="fa-solid fa-bullhorn mr-1.5"></i> Lost Report
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setPostForm(prev => ({ ...prev, status: 'found' }))}
+                                                    className={`py-2 text-sm font-semibold rounded-xl transition ${postForm.status === 'found' ? 'bg-emerald-500 text-white shadow-sm' : 'text-secondary-600 hover:text-secondary-800'}`}
+                                                >
+                                                    <i className="fa-solid fa-hand-holding-hand mr-1.5"></i> Found Report
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Title */}
+                                        <div>
+                                            <label className="block text-sm font-semibold text-secondary-600 mb-1.5">Title</label>
+                                            <input
+                                                type="text"
+                                                required
+                                                placeholder="e.g. Lost iPhone 15 near Library, Found Keys..."
+                                                value={postForm.title}
+                                                onChange={(e) => setPostForm(prev => ({ ...prev, title: e.target.value }))}
+                                                className="block w-full px-3 py-2 border border-secondary-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 transition text-sm bg-white"
+                                            />
+                                        </div>
+
+                                        {/* Category & Date */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-semibold text-secondary-600 mb-1.5">Category</label>
+                                                <select
+                                                    value={postForm.category}
+                                                    onChange={(e) => setPostForm(prev => ({ ...prev, category: e.target.value }))}
+                                                    className="block w-full px-3 py-2 border border-secondary-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 transition text-sm bg-white cursor-pointer"
+                                                >
+                                                    {CATEGORIES.map(c => (
+                                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-semibold text-secondary-600 mb-1.5">Date {postForm.status === 'lost' ? 'Lost' : 'Found'}</label>
+                                                <input
+                                                    type="date"
+                                                    required
+                                                    value={postForm.date}
+                                                    onChange={(e) => setPostForm(prev => ({ ...prev, date: e.target.value }))}
+                                                    className="block w-full px-3 py-2 border border-secondary-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 transition text-sm bg-white cursor-pointer"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Location */}
+                                        <div>
+                                            <label className="block text-sm font-semibold text-secondary-600 mb-1.5">Campus Location</label>
+                                            <select
+                                                value={LOCATIONS.includes(postForm.location) ? postForm.location : (postForm.location === '' ? '' : 'Other')}
+                                                onChange={(e) => setPostForm(prev => ({ ...prev, location: e.target.value === 'Other' ? 'Other' : e.target.value }))}
+                                                className="block w-full px-3 py-2 border border-secondary-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 transition text-sm bg-white cursor-pointer"
+                                            >
+                                                <option value="">-- Select Location --</option>
+                                                {LOCATIONS.map(loc => (
+                                                    <option key={loc} value={loc}>{loc}</option>
+                                                ))}
+                                                <option value="Other">Other (Type custom location below)</option>
+                                            </select>
+                                            {(postForm.location === 'Other' || (postForm.location !== '' && !LOCATIONS.includes(postForm.location))) && (
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    placeholder="e.g. Near Newman's Block Gym, Parking Lot Area"
+                                                    value={postForm.location === 'Other' ? '' : postForm.location}
+                                                    onChange={(e) => setPostForm(prev => ({ ...prev, location: e.target.value }))}
+                                                    className="block w-full px-3 py-2 border border-secondary-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 transition text-sm bg-white mt-2"
+                                                />
+                                            )}
+                                        </div>
+
+                                        {/* Description */}
+                                        <div>
+                                            <label className="block text-sm font-semibold text-secondary-600 mb-1.5">Detailed Description</label>
+                                            <textarea
+                                                required
+                                                rows="4"
+                                                placeholder="Provide detailed description, special characteristics, serial numbers, case markings, etc."
+                                                value={postForm.description}
+                                                onChange={(e) => setPostForm(prev => ({ ...prev, description: e.target.value }))}
+                                                className="block w-full px-3 py-2 border border-secondary-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 transition text-sm bg-white resize-none"
+                                            />
+                                        </div>
+
+                                        {/* Photo Upload Input */}
+                                        <div>
+                                            <label className="block text-sm font-semibold text-secondary-600 mb-1.5">Photo Attachment</label>
+                                            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-secondary-300 border-dashed rounded-2xl hover:border-primary-500 transition relative bg-secondary-50/50">
+                                                <div className="space-y-2 text-center">
+                                                    {postForm.imageUrl ? (
+                                                        <div className="relative inline-block">
+                                                            <img 
+                                                                src={postForm.imageUrl} 
+                                                                alt="Upload Preview" 
+                                                                className="w-32 h-32 object-cover rounded-2xl shadow-sm border border-secondary-200" 
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setPostForm(prev => ({ ...prev, imageUrl: '' }))}
+                                                                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-sm transition"
+                                                            >
+                                                                <i className="fa-solid fa-xmark text-xs px-1"></i>
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <React.Fragment>
+                                                            <i className="fa-solid fa-cloud-arrow-up text-secondary-400 text-3xl mb-1.5 block"></i>
+                                                            <div className="flex text-sm text-secondary-600 justify-center">
+                                                                <label className="relative cursor-pointer bg-transparent rounded-md font-semibold text-primary-600 hover:text-primary-700 focus-within:outline-none">
+                                                                    <span>Upload a photo</span>
+                                                                    <input 
+                                                                        type="file" 
+                                                                        accept="image/*" 
+                                                                        className="sr-only" 
+                                                                        onChange={(e) => {
+                                                                            const file = e.target.files[0];
+                                                                            if (file) {
+                                                                                const reader = new FileReader();
+                                                                                reader.onloadend = () => {
+                                                                                    setPostForm(prev => ({ ...prev, imageUrl: reader.result }));
+                                                                                };
+                                                                                reader.readAsDataURL(file);
+                                                                            }
+                                                                        }} 
+                                                                    />
+                                                                </label>
+                                                                <p className="pl-1">or drag and drop</p>
+                                                            </div>
+                                                            <p className="text-[10px] text-secondary-400">PNG, JPG, JPEG, WEBP up to 5MB</p>
+                                                        </React.Fragment>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-3 justify-end pt-4 border-t border-secondary-100">
+                                            <button
+                                                type="button"
+                                                onClick={() => { setActiveTab('dashboard'); }}
+                                                className="px-5 py-2.5 border border-secondary-200 hover:bg-secondary-50 text-secondary-700 font-semibold text-sm rounded-xl transition"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm rounded-xl shadow-md shadow-primary-100 transition"
+                                            >
+                                                Publish Report
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'messages' && (
+                            <div className="glass-panel rounded-3xl overflow-hidden shadow-sm border border-white flex flex-col md:flex-row h-[600px]">
+                                {/* Threads Sidebar */}
+                                <div className="w-full md:w-80 border-b md:border-b-0 md:border-r border-secondary-200 flex flex-col h-1/3 md:h-full">
+                                    <div className="p-4 border-b border-secondary-100 bg-secondary-50 bg-opacity-40">
+                                        <h3 className="font-bold text-secondary-900 text-sm">Message Threads</h3>
+                                    </div>
+                                    
+                                    <div className="flex-grow overflow-y-auto scrollbar-hide divide-y divide-secondary-100">
+                                        {chatThreads.length > 0 ? (
+                                            chatThreads.map((thread, idx) => {
+                                                const isActive = activeChatUser?.id === thread.partner.id && activeChatPostId === thread.post.id;
+                                                return (
+                                                    <div 
+                                                        key={idx}
+                                                        onClick={() => {
+                                                            setActiveChatUser(thread.partner);
+                                                            setActiveChatPostId(thread.post.id);
+                                                        }}
+                                                        className={`p-4 flex items-center gap-3 cursor-pointer transition ${isActive ? 'bg-primary-50' : 'hover:bg-secondary-50'}`}
+                                                    >
+                                                        <img src={thread.partner.avatar} className="w-10 h-10 rounded-full object-cover" />
+                                                        <div className="flex-grow min-w-0">
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <h4 className="font-bold text-xs text-secondary-900 truncate">{thread.partner.username}</h4>
+                                                                <span className="text-[9px] text-secondary-400 font-medium">
+                                                                    {new Date(thread.lastMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-[10px] text-primary-600 font-medium truncate mb-0.5">{thread.post.title}</p>
+                                                            <p className="text-[10px] text-secondary-500 truncate">{thread.lastMessage.text}</p>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
+                                        ) : (
+                                            <div className="p-8 text-center text-secondary-400 text-xs">
+                                                <i className="fa-regular fa-message text-2xl mb-2"></i>
+                                                <p>No active message threads yet.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Active Conversation Panel */}
+                                <div className="flex-grow flex flex-col h-2/3 md:h-full">
+                                    {activeChatUser && activeChatPostId ? (
+                                        <React.Fragment>
+                                            {/* Chat header */}
+                                            <div className="p-4 border-b border-secondary-100 flex items-center justify-between bg-secondary-50 bg-opacity-40">
+                                                <div className="flex items-center gap-3">
+                                                    <img src={activeChatUser.avatar} className="w-10 h-10 rounded-full object-cover" />
+                                                    <div>
+                                                        <h4 className="font-bold text-sm text-secondary-900">{activeChatUser.username}</h4>
+                                                        <span className="text-[10px] text-secondary-400">Context: <span className="text-primary-600 font-semibold cursor-pointer hover:underline" onClick={() => { setSelectedPostId(activeChatPostId); setActiveTab('post-detail'); }}>{posts.find(p => p.id === activeChatPostId)?.title}</span></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Messages stream */}
+                                            <div className="flex-grow p-4 overflow-y-auto space-y-4">
+                                                {activeChatMessages.map(msg => {
+                                                    const isMe = msg.senderId === currentUser.id;
+                                                    return (
+                                                        <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                                            <div className={`max-w-[70%] p-3 rounded-2xl text-xs sm:text-sm shadow-sm ${isMe ? 'bg-primary-600 text-white rounded-br-none' : 'bg-white text-secondary-800 border border-secondary-100 rounded-bl-none'}`}>
+                                                                <p className="leading-relaxed">{msg.text}</p>
+                                                                <p className={`text-[9px] text-right mt-1.5 ${isMe ? 'text-primary-200' : 'text-secondary-400'}`}>
+                                                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            {/* Input panel */}
+                                            <form onSubmit={handleSendMessage} className="p-4 border-t border-secondary-100 flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    placeholder="Type a secure message..."
+                                                    value={newMessageText}
+                                                    onChange={(e) => setNewMessageText(e.target.value)}
+                                                    className="flex-grow px-3 py-2 border border-secondary-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm bg-white"
+                                                />
+                                                <button
+                                                    type="submit"
+                                                    className="px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl shadow-md shadow-primary-100 transition flex items-center justify-center"
+                                                >
+                                                    <i className="fa-solid fa-paper-plane"></i>
+                                                </button>
+                                            </form>
+                                        </React.Fragment>
+                                    ) : (
+                                        <div className="flex-grow flex flex-col items-center justify-center text-secondary-400 p-8 text-center">
+                                            <i className="fa-solid fa-comments text-5xl mb-4 text-secondary-200"></i>
+                                            <h3 className="font-bold text-secondary-600 text-sm">Select a Conversation</h3>
+                                            <p className="text-[11px] text-secondary-400 mt-1">Select a message thread or visit a post details page to send a query.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'profile' && (
+                            <div className="max-w-2xl mx-auto space-y-6">
+                                <div className="glass-panel p-6 sm:p-8 rounded-3xl shadow-sm border border-white flex flex-col items-center text-center">
+                                    <img src={currentUser.avatar} className="w-24 h-24 rounded-full object-cover ring-4 ring-primary-100 shadow-md mb-4" />
+                                    <h2 className="text-2xl font-extrabold text-secondary-900">{currentUser.username}</h2>
+                                    <p className="text-secondary-400 text-sm mt-0.5">{currentUser.email}</p>
+                                    <p className="text-secondary-500 text-xs font-semibold mt-2 bg-secondary-100 px-3 py-1 rounded-full">{currentUser.phone}</p>
+                                </div>
+
+                                <div className="glass-panel p-6 sm:p-8 rounded-3xl shadow-sm border border-white">
+                                    <h3 className="font-bold text-lg text-secondary-900 mb-4">Your Active Reports</h3>
+                                    
+                                    <div className="space-y-3">
+                                        {posts.filter(p => p.reporterId === currentUser.id).length > 0 ? (
+                                            posts.filter(p => p.reporterId === currentUser.id).map(post => (
+                                                <div 
+                                                    key={post.id}
+                                                    onClick={() => { setSelectedPostId(post.id); setActiveTab('post-detail'); }}
+                                                    className="p-3 bg-white hover:bg-secondary-50 border border-secondary-100 rounded-2xl cursor-pointer transition flex items-center justify-between"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <img src={post.imageUrl} className="w-12 h-12 object-cover rounded-xl" />
+                                                        <div>
+                                                            <h4 className="font-bold text-xs sm:text-sm text-secondary-900 line-clamp-1">{post.title}</h4>
+                                                            <div className="flex gap-1.5 mt-1">
+                                                                <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full ${post.status === 'lost' ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                                                                    {post.status}
+                                                                </span>
+                                                                {post.resolved && (
+                                                                    <span className="text-[9px] font-extrabold bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full">
+                                                                        RESOLVED
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <i className="fa-solid fa-chevron-right text-secondary-300 text-xs"></i>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <p className="text-secondary-400 text-xs text-center py-6">You have not published any reports yet.</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Generated Handover Receipts */}
+                                <div className="glass-panel p-6 sm:p-8 rounded-3xl shadow-sm border border-white">
+                                    <h3 className="font-bold text-lg text-secondary-900 mb-4">Your Handover Receipts</h3>
+                                    
+                                    <div className="space-y-3">
+                                        {handovers.filter(h => h.ownerId === currentUser.id || h.finderId === currentUser.id).length > 0 ? (
+                                            handovers.filter(h => h.ownerId === currentUser.id || h.finderId === currentUser.id).map(handover => (
+                                                <div 
+                                                    key={handover.id}
+                                                    onClick={() => setActiveReceipt(handover)}
+                                                    className="p-3 bg-white hover:bg-secondary-50 border border-secondary-100 rounded-2xl cursor-pointer transition flex items-center justify-between"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-500 text-sm">
+                                                            <i className="fa-solid fa-file-invoice"></i>
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-bold text-xs sm:text-sm text-secondary-900 line-clamp-1">{handover.postTitle}</h4>
+                                                            <p className="text-[10px] text-secondary-400 mt-0.5">Receipt: {handover.receiptNo} • Date: {handover.receivedDate}</p>
+                                                        </div>
+                                                    </div>
+                                                    <i className="fa-solid fa-receipt text-primary-500 text-xs"></i>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <p className="text-secondary-400 text-xs text-center py-6">No handover receipts found.</p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+
+                    </main>
+
+                    {/* Handover Receipts Modal */}
+                    {activeReceipt && (
+                        <div className="fixed inset-0 bg-secondary-900 bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                            <div className="glass-panel max-w-lg w-full rounded-3xl shadow-2xl border overflow-hidden">
+                                <div className="bg-gradient-to-r from-emerald-600 to-teal-500 text-white p-6 text-center relative">
+                                    <div className="absolute top-4 right-4 cursor-pointer text-white text-lg" onClick={() => setActiveReceipt(null)}>
+                                        <i className="fa-solid fa-xmark"></i>
+                                    </div>
+                                    <div className="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-3">
+                                        <i className="fa-solid fa-circle-check text-2xl"></i>
+                                    </div>
+                                    <h3 className="font-extrabold text-xl">Official Handover Receipt</h3>
+                                    <p className="text-emerald-100 text-xs mt-1">Receipt ID: {activeReceipt.receiptNo}</p>
+                                </div>
+
+                                <div className="p-6 space-y-6">
+                                    <div className="bg-secondary-50 rounded-2xl p-4 border border-secondary-100 text-xs sm:text-sm space-y-3">
+                                        <div className="flex justify-between border-b border-secondary-200 pb-2">
+                                            <span className="text-secondary-400 font-medium">Item Reclaimed</span>
+                                            <span className="font-semibold text-secondary-800 text-right max-w-[200px] truncate">{activeReceipt.postTitle}</span>
+                                        </div>
+                                        <div className="flex justify-between border-b border-secondary-200 pb-2">
+                                            <span className="text-secondary-400 font-medium">Claimant (Owner)</span>
+                                            <span className="font-semibold text-secondary-800">{users.find(u => u.id === activeReceipt.ownerId)?.username}</span>
+                                        </div>
+                                        <div className="flex justify-between border-b border-secondary-200 pb-2">
+                                            <span className="text-secondary-400 font-medium">Discoverer (Finder)</span>
+                                            <span className="font-semibold text-secondary-800">{users.find(u => u.id === activeReceipt.finderId)?.username}</span>
+                                        </div>
+                                        <div className="flex justify-between border-b border-secondary-200 pb-2">
+                                            <span className="text-secondary-400 font-medium">Handover Date</span>
+                                            <span className="font-semibold text-secondary-800">{activeReceipt.receivedDate}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-secondary-400 font-medium">Security Verification Code</span>
+                                            <span className="font-extrabold text-emerald-600 tracking-wider font-mono">{activeReceipt.verificationCode}</span>
+                                        </div>
+                                    </div>
+
+                                    {activeReceipt.notes && (
+                                        <div>
+                                            <h4 className="text-xs font-bold text-secondary-400 uppercase mb-1">Handover Notes</h4>
+                                            <p className="p-3 bg-secondary-50 text-secondary-600 rounded-xl text-xs italic border border-secondary-100">{activeReceipt.notes}</p>
+                                        </div>
+                                    )}
+
+                                    <div className="text-center text-[10px] text-secondary-400 flex items-center justify-center gap-2">
+                                        <i className="fa-solid fa-shield-halved text-emerald-500"></i>
+                                        <span>Cryptographically verified handover transaction logging.</span>
+                                    </div>
+
+                                    <div className="flex gap-2">
+                                        <button 
+                                            onClick={() => window.print()}
+                                            className="flex-grow py-2.5 bg-secondary-100 hover:bg-secondary-200 text-secondary-700 font-semibold text-sm rounded-xl transition flex items-center justify-center gap-2"
+                                        >
+                                            <i className="fa-solid fa-print"></i> Print Receipt
+                                        </button>
+                                        <button 
+                                            onClick={() => setActiveReceipt(null)}
+                                            className="flex-grow py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-xl transition shadow-md shadow-emerald-100"
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Generate Handover Input Modal */}
+                    {showHandoverModal && handoverPost && (
+                        <div className="fixed inset-0 bg-secondary-900 bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                            <div className="glass-panel max-w-md w-full rounded-3xl shadow-2xl border p-6 space-y-6">
+                                <h3 className="font-extrabold text-xl text-secondary-900 text-center">Resolve Claim & Generate Receipt</h3>
+                                <p className="text-xs text-secondary-500 text-center">Complete the form to log a successful handover and return of this item.</p>
+                                
+                                <form onSubmit={completeHandover} className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-secondary-600 mb-1">Resolving Item</label>
+                                        <input type="text" disabled value={handoverPost.title} className="w-full px-3 py-2 border border-secondary-200 bg-secondary-50 text-secondary-500 rounded-xl text-sm font-semibold focus:outline-none" />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-semibold text-secondary-600 mb-1">Handover Partner (Claimant/Finder)</label>
+                                        <select
+                                            value={handoverPartnerId}
+                                            onChange={(e) => setHandoverPartnerId(e.target.value)}
+                                            className="w-full px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer"
+                                        >
+                                            {users.filter(u => u.id !== currentUser.id).map(u => (
+                                                <option key={u.id} value={u.id}>{u.username} ({u.email})</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-semibold text-secondary-600 mb-1">Notes / Verification Details</label>
+                                        <textarea
+                                            rows="3"
+                                            placeholder="Add notes e.g., 'Met at the library café, owner verified the serial number of the phone.'"
+                                            value={handoverNotes}
+                                            onChange={(e) => setHandoverNotes(e.target.value)}
+                                            className="w-full px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white resize-none focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                        />
+                                    </div>
+
+                                    <div className="flex gap-3 justify-end pt-2">
+                                        <button 
+                                            type="button"
+                                            onClick={() => setShowHandoverModal(false)}
+                                            className="px-4 py-2 border border-secondary-200 hover:bg-secondary-50 text-secondary-700 font-semibold text-sm rounded-xl transition"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button 
+                                            type="submit"
+                                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-xl transition shadow-md shadow-emerald-100"
+                                        >
+                                            Generate Receipt
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Footer */}
+                    <footer className="bg-secondary-900 text-secondary-400 py-8 border-t border-secondary-800 mt-auto">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs">
+                            <p>© 2026 LostFound Inc. Built with React and Tailwind CSS. All rights reserved.</p>
+                            <p className="mt-2 text-secondary-600">Reassuring local community network integration security layer active.</p>
+                        </div>
+                    </footer>
+                </div>
+            );
+        }
+
+        // Render application
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<MainApp />);
+    </script>
+</body>
+</html>
